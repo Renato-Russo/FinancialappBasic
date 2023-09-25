@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Controle Financeiro</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/numeral.min.js"></script>
+</head>
+<body>
+  <div class="container mt-5">
+    <h1>Controle Financeiro</h1>
+    <div class="row mt-4">
+      <div class="col-md-12">
+        <button class="btn btn-primary" data-toggle="modal" data-target="#expenseModal">Adicionar Despesa/Ganho</button>
+      </div>
+    </div>
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <h3>Total: <span id="total">R$ 0,00</span></h3>
+      </div>
+    </div>
+    <div class="row mt-4">
+      <div class="col-md-12">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Descrição</th>
+              <th>Valor</th>
+              <th>Tipo</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="expenseTableBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="expenseModal" tabindex="-1" role="dialog" aria-labelledby="expenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="expenseModalLabel">Adicionar Despesa/Ganho</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="expenseForm">
+            <div class="form-group">
+              <label for="description">Descrição:</label>
+              <input type="text" class="form-control" id="description" required>
+            </div>
+            <div class="form-group">
+              <label for="value">Valor:</label>
+              <input type="number" class="form-control" id="value" required>
+            </div>
+            <div class="form-group">
+              <label for="type">Tipo:</label>
+              <select class="form-control" id="type" required>
+                <option value="expense">Gasto</option>
+                <option value="income">Ganho</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+          <button type="button" class="btn btn-primary" id="addExpenseBtn">Adicionar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var expenses = [];
+    var total = 0;
+
+    function formatCurrency(value) {
+      return numeral(value).format('R$ 0,0.00');
+    }
+
+    function addExpense(description, value, type) {
+      var expenseValue = type === 'expense' ? -value : value;
+      expenses.push({ description: description, value: expenseValue, type: type });
+      total += expenseValue;
+    }
+
+    function removeExpense(index) {
+      var removedExpense = expenses.splice(index, 1)[0];
+      total -= removedExpense.value;
+    }
+
+    function updateTotal() {
+      var totalElement = document.getElementById("total");
+      totalElement.textContent = formatCurrency(total);
+    }
+
+    function updateTable() {
+      var tableBody = document.getElementById("expenseTableBody");
+      tableBody.innerHTML = "";
+
+      expenses.forEach(function(expense, index) {
+        var row = document.createElement("tr");
+        var descriptionCell = document.createElement("td");
+        descriptionCell.textContent = expense.description;
+        var valueCell = document.createElement("td");
+        valueCell.textContent = formatCurrency(expense.value);
+        var typeCell = document.createElement("td");
+        typeCell.textContent = expense.type === 'expense' ? 'Gasto' : 'Ganho';
+        var actionsCell = document.createElement("td");
+        var editButton = document.createElement("button");
+        editButton.textContent = "Editar";
+        editButton.classList.add("btn", "btn-primary", "mr-2");
+        editButton.addEventListener("click", function() {
+          editExpense(index);
+        });
+        var deleteButton = document.createElement("button");
+        deleteButton.textContent = "Excluir";
+        deleteButton.classList.add("btn", "btn-danger");
+        deleteButton.addEventListener("click", function() {
+          deleteExpense(index);
+        });
+
+        actionsCell.appendChild(editButton);
+        actionsCell.appendChild(deleteButton);
+
+        row.appendChild(descriptionCell);
+        row.appendChild(valueCell);
+        row.appendChild(typeCell);
+        row.appendChild(actionsCell);
+
+        tableBody.appendChild(row);
+      });
+    }
+
+    function editExpense(index) {
+      var expense = expenses[index];
+      var descriptionInput = document.getElementById("description");
+      var valueInput = document.getElementById("value");
+      var typeInput = document.getElementById("type");
+
+      descriptionInput.value = expense.description;
+      valueInput.value = Math.abs(expense.value);
+      typeInput.value = expense.type;
+      
+      removeExpense(index);
+      updateTotal();
+      updateTable();
+    }
+
+    function deleteExpense(index) {
+      removeExpense(index);
+      updateTotal();
+      updateTable();
+    }
+
+    function clearForm() {
+      var descriptionInput = document.getElementById("description");
+      var valueInput = document.getElementById("value");
+      var typeInput = document.getElementById("type");
+
+      descriptionInput.value = "";
+      valueInput.value = "";
+      typeInput.value = "expense";
+    }
+
+    function handleFormSubmit(event) {
+      event.preventDefault();
+
+      var descriptionInput = document.getElementById("description");
+      var valueInput = document.getElementById("value");
+      var typeInput = document.getElementById("type");
+
+      var description = descriptionInput.value;
+      var value = parseFloat(valueInput.value);
+      var type = typeInput.value;
+
+      if (isNaN(value)) {
+        alert("O valor deve ser numérico.");
+        return;
+      }
+
+      addExpense(description, value, type);
+      updateTotal();
+      updateTable();
+      clearForm();
+      $('#expenseModal').modal('hide');
+    }
+
+    var expenseForm = document.getElementById("expenseForm");
+    expenseForm.addEventListener("submit", handleFormSubmit);
+
+    var addExpenseBtn = document.getElementById("addExpenseBtn");
+    addExpenseBtn.addEventListener("click", function() {
+      expenseForm.dispatchEvent(new Event('submit'));
+    });
+  </script>
+
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+</body>
+</html>
